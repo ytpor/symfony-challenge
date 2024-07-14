@@ -1,0 +1,37 @@
+services:
+  nginx:
+    image: nginx:1.9
+    container_name: symfony-challenge.local
+    volumes:
+      # Mount source-code for development
+      - ./:/app
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/default.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8063:80"
+    restart: unless-stopped
+    environment:
+      - VIRTUAL_HOST=symfony-challenge.local
+  php:
+    build:
+      context: ./docker
+      args:
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+        MY_USERNAME: ${MY_USERNAME}
+    container_name: symfony-challenge.local.fpm
+    volumes:
+      # Re-use local composer cache via host-volume
+      - ~/.composer-docker/cache:/root/.composer/cache:delegated
+      # Mount source-code for development
+      - ./:/app:delegated
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    restart: unless-stopped
+    user: ${MY_UID}:${MY_GID}
+volumes:
+  cache:
+    driver: local
+networks:
+  default:
+    name: nginx-proxy
+    external: true
